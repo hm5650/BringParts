@@ -4,7 +4,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = workspace.CurrentCamera
-local Debris = game:GetService("Debris")
 
 local LocalPlayer = Players.LocalPlayer
 local character
@@ -173,7 +172,6 @@ local spectateMonitorConnection = nil
 local DescendantAddedConnection
 local originalCameraSubject = nil
 local originalCameraType = nil
-local blackHoleParts = {}
 
 local Folder = Instance.new("Folder", Workspace)
 local Part = Instance.new("Part", Folder)
@@ -182,483 +180,453 @@ Part.Anchored = true
 Part.CanCollide = false
 Part.Transparency = 1
 
-local function cleanup()
-    for _, partData in ipairs(blackHoleParts) do
-        local part = partData.Part
-        if part and part:IsDescendantOf(Workspace) then
-            for _, child in ipairs(part:GetChildren()) do
-                if child:IsA("Constraint") or child:IsA("BodyMover") then
-                    child:Destroy()
-                end
-            end
-            part.CanCollide = false
-            part.Anchored = false
-            part.Velocity = Vector3.new(0, -50, 0)
-            Debris:AddItem(part, 10)
-        end
-    end
-    blackHoleParts = {}
-end
-
 if not getgenv().Network then
-    getgenv().Network = {
-        BaseParts = {},
-        Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
-    }
+	getgenv().Network = {
+		BaseParts = {},
+		Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
+	}
 
-    Network.RetainPart = function(Part)
-        if Part:IsA("BasePart") and Part:IsDescendantOf(Workspace) then
-            table.insert(Network.BaseParts, Part)
-            Part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-            Part.CanCollide = false
-        end
-    end
+	Network.RetainPart = function(Part)
+		if Part:IsA("BasePart") and Part:IsDescendantOf(Workspace) then
+			table.insert(Network.BaseParts, Part)
+			Part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+			Part.CanCollide = false
+		end
+	end
 
-    local function EnablePartControl()
-        LocalPlayer.ReplicationFocus = Workspace
-        RunService.Heartbeat:Connect(function()
-            sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
-            for _, Part in pairs(Network.BaseParts) do
-                if Part:IsDescendantOf(Workspace) then
-                    Part.Velocity = Network.Velocity
-                end
-            end
-        end)
-    end
+	local function EnablePartControl()
+		LocalPlayer.ReplicationFocus = Workspace
+		RunService.Heartbeat:Connect(function()
+			sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+			for _, Part in pairs(Network.BaseParts) do
+				if Part:IsDescendantOf(Workspace) then
+					Part.Velocity = Network.Velocity
+				end
+			end
+		end)
+	end
 
-    EnablePartControl()
+	EnablePartControl()
 end
-
 local function ForcePart(v)
-    if v:IsA("BasePart") and not v.Anchored 
-        and not v.Parent:FindFirstChildOfClass("Humanoid") 
-        and not v.Parent:FindFirstChild("Head") 
-        and v.Name ~= "Handle" then
-        for _, x in ipairs(v:GetChildren()) do
-            if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
-                x:Destroy()
-            end
-        end
-        if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
-        if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
-        if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
-        v.CanCollide = false
-        local Torque = Instance.new("Torque", v)
-        Torque.Torque = Vector3.new(100000, 100000, 100000)
-        local AlignPosition = Instance.new("AlignPosition", v)
-        local Attachment2 = Instance.new("Attachment", v)
-        Torque.Attachment0 = Attachment2
-        AlignPosition.MaxForce = math.huge
-        AlignPosition.MaxVelocity = math.huge
-        AlignPosition.Responsiveness = 200
-        AlignPosition.Attachment0 = Attachment2
-        AlignPosition.Attachment1 = Attachment1
-        table.insert(blackHoleParts, {
-            Part = v,
-            Attachment = Attachment2,
-            AlignPosition = AlignPosition,
-            Torque = Torque
-        })
-    end
+	if v:IsA("BasePart") and not v.Anchored 
+		and not v.Parent:FindFirstChildOfClass("Humanoid") 
+		and not v.Parent:FindFirstChild("Head") 
+		and v.Name ~= "Handle" then
+		for _, x in ipairs(v:GetChildren()) do
+			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
+				x:Destroy()
+			end
+		end
+		if v:FindFirstChild("Attachment") then v:FindFirstChild("Attachment"):Destroy() end
+		if v:FindFirstChild("AlignPosition") then v:FindFirstChild("AlignPosition"):Destroy() end
+		if v:FindFirstChild("Torque") then v:FindFirstChild("Torque"):Destroy() end
+		v.CanCollide = false
+		local Torque = Instance.new("Torque", v)
+		Torque.Torque = Vector3.new(100000, 100000, 100000)
+		local AlignPosition = Instance.new("AlignPosition", v)
+		local Attachment2 = Instance.new("Attachment", v)
+		Torque.Attachment0 = Attachment2
+		AlignPosition.MaxForce = math.huge
+		AlignPosition.MaxVelocity = math.huge
+		AlignPosition.Responsiveness = 200
+		AlignPosition.Attachment0 = Attachment2
+		AlignPosition.Attachment1 = Attachment1
+	end
 end
 
 local function getPlayer(name)
-    local lowerName = string.lower(name)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local lowerPlayer = string.lower(p.Name)
-            if string.find(lowerPlayer, lowerName) then
-                return p
-            elseif string.find(string.lower(p.DisplayName), lowerName) then
-                return p
-            end
-        end
-    end
+	local lowerName = string.lower(name)
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer then
+			local lowerPlayer = string.lower(p.Name)
+			if string.find(lowerPlayer, lowerName) then
+				return p
+			elseif string.find(string.lower(p.DisplayName), lowerName) then
+				return p
+			end
+		end
+	end
 end
 
 local function getValidPlayers()
-    local valid = {}
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            table.insert(valid, p)
-        end
-    end
-    return valid
+	local valid = {}
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			table.insert(valid, p)
+		end
+	end
+	return valid
 end
 
 local function isTargetValid(target)
-    return target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") and 
-           target.Character.Humanoid.Health > 0
+	return target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") and 
+		   target.Character.Humanoid.Health > 0
 end
 
 local function updateTarget()
-    if targetMode == "Players" then
-        currentTarget = getPlayer(Box.Text)
-    else
-        local players = getValidPlayers()
-        if #players > 0 then
-            cycleIndex = (cycleIndex % #players) + 1
-            currentTarget = players[cycleIndex]
-        else
-            currentTarget = nil
-        end
-    end
-    
-    if currentTarget then
-        StatusLabel.Text = "Target: " .. currentTarget.Name
-    else
-        StatusLabel.Text = "Target: None"
-    end
-    
-    if spectateActive then
-        if isTargetValid(currentTarget) then
-            startSpectating()
-        else
-            stopSpectating()
-            spectateActive = false
-            SpectateButton.Text = "Spectate: Off"
-        end
-    end
-    
-    return currentTarget
+	if targetMode == "Players" then
+		currentTarget = getPlayer(Box.Text)
+	else
+		local players = getValidPlayers()
+		if #players > 0 then
+			cycleIndex = (cycleIndex % #players) + 1
+			currentTarget = players[cycleIndex]
+		else
+			currentTarget = nil
+		end
+	end
+	
+	if currentTarget then
+		StatusLabel.Text = "Target: " .. currentTarget.Name
+	else
+		StatusLabel.Text = "Target: None"
+	end
+	
+	if spectateActive then
+		if isTargetValid(currentTarget) then
+			startSpectating()
+		else
+			stopSpectating()
+			spectateActive = false
+			SpectateButton.Text = "Spectate: Off"
+		end
+	end
+	
+	return currentTarget
 end
 
 local function getTargetCFrame()
-    if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
-        return currentTarget.Character.HumanoidRootPart.CFrame
-    end
-    return nil
+	if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+		return currentTarget.Character.HumanoidRootPart.CFrame
+	end
+	return nil
 end
 
 local function startCycling()
-    if cycleConnection then cycleConnection:Disconnect() end
-    cycleConnection = RunService.Heartbeat:Connect(function()
-        if targetMode == "All" and blackHoleActive then
-            if tick() % 3 < 0.1 then
-                updateTarget()
-            end
-        end
-    end)
+	if cycleConnection then cycleConnection:Disconnect() end
+	cycleConnection = RunService.Heartbeat:Connect(function()
+		if targetMode == "All" and blackHoleActive then
+			if tick() % 3 < 0.1 then
+				updateTarget()
+			end
+		end
+	end)
 end
 
 local function startSpectating()
-    if not currentTarget or not isTargetValid(currentTarget) then
-        if spectateActive then
-            spectateActive = false
-            SpectateButton.Text = "Spectate: Off"
-            stopSpectating()
-        end
-        return
-    end
-    
-    local character = currentTarget.Character
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-    
-    if not originalCameraType then
-        originalCameraType = Camera.CameraType
-        originalCameraSubject = Camera.CameraSubject
-    end
-    
-    Camera.CameraType = Enum.CameraType.Custom
-    Camera.CameraSubject = humanoid
+	if not currentTarget or not isTargetValid(currentTarget) then
+		if spectateActive then
+			spectateActive = false
+			SpectateButton.Text = "Spectate: Off"
+			stopSpectating()
+		end
+		return
+	end
+	
+	local character = currentTarget.Character
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	
+	if not originalCameraType then
+		originalCameraType = Camera.CameraType
+		originalCameraSubject = Camera.CameraSubject
+	end
+	
+	Camera.CameraType = Enum.CameraType.Custom
+	Camera.CameraSubject = humanoid
 end
 
 local function stopSpectating()
-    if originalCameraType and originalCameraSubject then
-        Camera.CameraType = originalCameraType
-        Camera.CameraSubject = originalCameraSubject
-    else
-        Camera.CameraType = Enum.CameraType.Custom
-        Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    end
-    originalCameraType = nil
-    originalCameraSubject = nil
+	if originalCameraType and originalCameraSubject then
+		Camera.CameraType = originalCameraType
+		Camera.CameraSubject = originalCameraSubject
+	else
+		Camera.CameraType = Enum.CameraType.Custom
+		Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	end
+	originalCameraType = nil
+	originalCameraSubject = nil
 end
-
 local function startSpectateMonitoring()
-    if spectateMonitorConnection then
-        spectateMonitorConnection:Disconnect()
-    end
-    
-    spectateMonitorConnection = RunService.Heartbeat:Connect(function()
-        if not spectateActive then
-            if spectateMonitorConnection then
-                spectateMonitorConnection:Disconnect()
-                spectateMonitorConnection = nil
-            end
-            return
-        end
-        
-        if not isTargetValid(currentTarget) then
-            if targetMode == "All" then
-                local newTarget = updateTarget()
-                if newTarget and isTargetValid(newTarget) then
-                    startSpectating()
-                else
-                    stopSpectating()
-                    spectateActive = false
-                    SpectateButton.Text = "Spectate: Off"
-                end
-            else
-                stopSpectating()
-                if currentTarget then
-                    currentTarget.CharacterAdded:Connect(function()
-                        if spectateActive and currentTarget == currentTarget then
-                            task.wait(0.5)
-                            if spectateActive and isTargetValid(currentTarget) then
-                                startSpectating()
-                            end
-                        end
-                    end)
-                else
-                    spectateActive = false
-                    SpectateButton.Text = "Spectate: Off"
-                end
-            end
-        else
-            if Camera.CameraSubject ~= currentTarget.Character:FindFirstChildOfClass("Humanoid") then
-                startSpectating()
-            end
-        end
-    end)
+	if spectateMonitorConnection then
+		spectateMonitorConnection:Disconnect()
+	end
+	
+	spectateMonitorConnection = RunService.Heartbeat:Connect(function()
+		if not spectateActive then
+			if spectateMonitorConnection then
+				spectateMonitorConnection:Disconnect()
+				spectateMonitorConnection = nil
+			end
+			return
+		end
+		
+		if not isTargetValid(currentTarget) then
+			if targetMode == "All" then
+				local newTarget = updateTarget()
+				if newTarget and isTargetValid(newTarget) then
+					startSpectating()
+				else
+					stopSpectating()
+					spectateActive = false
+					SpectateButton.Text = "Spectate: Off"
+				end
+			else
+				stopSpectating()
+				if currentTarget then
+					currentTarget.CharacterAdded:Connect(function()
+						if spectateActive and currentTarget == currentTarget then
+							task.wait(0.5)
+							if spectateActive and isTargetValid(currentTarget) then
+								startSpectating()
+							end
+						end
+					end)
+				else
+					spectateActive = false
+					SpectateButton.Text = "Spectate: Off"
+				end
+			end
+		else
+			if Camera.CameraSubject ~= currentTarget.Character:FindFirstChildOfClass("Humanoid") then
+				startSpectating()
+			end
+		end
+	end)
 end
 
 local function toggleSpectate()
-    if not currentTarget then
-        print("No target to spectate")
-        return
-    end
-    
-    spectateActive = not spectateActive
-    SpectateButton.Text = spectateActive and "Spectate: On" or "Spectate: Off"
-    
-    if spectateActive then
-        if isTargetValid(currentTarget) then
-            startSpectating()
-            startSpectateMonitoring()
-        else
-            print("Target is not valid (dead or no character)")
-            spectateActive = false
-            SpectateButton.Text = "Spectate: Off"
-        end
-    else
-        stopSpectating()
-        if spectateMonitorConnection then
-            spectateMonitorConnection:Disconnect()
-            spectateMonitorConnection = nil
-        end
-    end
+	if not currentTarget then
+		print("No target to spectate")
+		return
+	end
+	
+	spectateActive = not spectateActive
+	SpectateButton.Text = spectateActive and "Spectate: On" or "Spectate: Off"
+	
+	if spectateActive then
+		if isTargetValid(currentTarget) then
+			startSpectating()
+			startSpectateMonitoring()
+		else
+			print("Target is not valid (dead or no character)")
+			spectateActive = false
+			SpectateButton.Text = "Spectate: Off"
+		end
+	else
+		stopSpectating()
+		if spectateMonitorConnection then
+			spectateMonitorConnection:Disconnect()
+			spectateMonitorConnection = nil
+		end
+	end
 end
 
 local function toggleBlackHole()
-    blackHoleActive = not blackHoleActive
-    if blackHoleActive then
-        BringButton.Text = "Bring: On"
-        updateTarget()
-        
-        if not currentTarget then
-            blackHoleActive = false
-            BringButton.Text = "Bring: Off"
-            print("No valid target")
-            return
-        end
-        cleanup()
-        
-        for _, v in ipairs(Workspace:GetDescendants()) do
-            ForcePart(v)
-        end
-        DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
-            if blackHoleActive then
-                ForcePart(v)
-            end
-        end)
-        if targetMode == "All" then
-            startCycling()
-        end
-        spawn(function()
-            while blackHoleActive and RunService.RenderStepped:Wait() do
-                local cframe = getTargetCFrame()
-                if cframe then
-                    Attachment1.WorldCFrame = cframe
-                end
-            end
-        end)
-    else
-        BringButton.Text = "Bring: Off"
-        cleanup()
-        
-        if DescendantAddedConnection then
-            DescendantAddedConnection:Disconnect()
-        end
-        if cycleConnection then
-            cycleConnection:Disconnect()
-            cycleConnection = nil
-        end
-        if spectateActive then
-            toggleSpectate()
-        end
-    end
+	blackHoleActive = not blackHoleActive
+	if blackHoleActive then
+		BringButton.Text = "Bring: On"
+		updateTarget()
+		
+		if not currentTarget then
+			blackHoleActive = false
+			BringButton.Text = "Bring: Off"
+			print("No valid target")
+			return
+		end
+		for _, v in ipairs(Workspace:GetDescendants()) do
+			ForcePart(v)
+		end
+		DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
+			if blackHoleActive then
+				ForcePart(v)
+			end
+		end)
+		if targetMode == "All" then
+			startCycling()
+		end
+		spawn(function()
+			while blackHoleActive and RunService.RenderStepped:Wait() do
+				local cframe = getTargetCFrame()
+				if cframe then
+					Attachment1.WorldCFrame = cframe
+				end
+			end
+		end)
+	else
+		BringButton.Text = "Bring: Off"
+		if DescendantAddedConnection then
+			DescendantAddedConnection:Disconnect()
+		end
+		if cycleConnection then
+			cycleConnection:Disconnect()
+			cycleConnection = nil
+		end
+		if spectateActive then
+			toggleSpectate()
+		end
+	end
 end
 
 local function fadeBox(show)
-    local targetTransparency = show and 0.1 or 1
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local goals = {
-        BackgroundTransparency = targetTransparency,
-        TextTransparency = show and 0 or 1
-    }
-    local tween = TweenService:Create(Box, tweenInfo, goals)
-    tween:Play()
-    Box.Active = show
-    Box.Selectable = show
+	local targetTransparency = show and 0.1 or 1
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local goals = {
+		BackgroundTransparency = targetTransparency,
+		TextTransparency = show and 0 or 1
+	}
+	local tween = TweenService:Create(Box, tweenInfo, goals)
+	tween:Play()
+	Box.Active = show
+	Box.Selectable = show
 end
 
 local function toggleTargetMode()
-    local newMode = targetMode == "Players" and "All" or "Players"
-    targetMode = newMode
-    TargetButton.Text = targetMode
-    
-    if targetMode == "Players" then
-        TargetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    else
-        TargetButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    end
-    fadeBox(targetMode == "Players")
-    if spectateActive then
-        if targetMode == "All" then
-            updateTarget()
-            startSpectateMonitoring()
-        else
-            startSpectateMonitoring()
-        end
-    end
-    if blackHoleActive then
-        updateTarget()
-        if targetMode == "All" then
-            startCycling()
-        else
-            if cycleConnection then
-                cycleConnection:Disconnect()
-                cycleConnection = nil
-            end
-        end
-    end
+	local newMode = targetMode == "Players" and "All" or "Players"
+	targetMode = newMode
+	TargetButton.Text = targetMode
+	
+	if targetMode == "Players" then
+		TargetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	else
+		TargetButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+	end
+	fadeBox(targetMode == "Players")
+	if spectateActive then
+		if targetMode == "All" then
+			updateTarget()
+			startSpectateMonitoring()
+		else
+
+			startSpectateMonitoring()
+		end
+	end
+	if blackHoleActive then
+		updateTarget()
+		if targetMode == "All" then
+			startCycling()
+		else
+			if cycleConnection then
+				cycleConnection:Disconnect()
+				cycleConnection = nil
+			end
+		end
+	end
 end
 
 TargetButton.MouseButton1Click:Connect(toggleTargetMode)
 SpectateButton.MouseButton1Click:Connect(toggleSpectate)
 BringButton.MouseButton1Click:Connect(function()
-    if targetMode == "Players" then
-        local player = getPlayer(Box.Text)
-        if player then
-            character = player.Character or player.CharacterAdded:Wait(5)
-            if character then
-                humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
-                if humanoidRootPart then
-                    currentTarget = player
-                    toggleBlackHole()
-                else
-                    print("Player has no HumanoidRootPart")
-                end
-            else
-                print("Player character not found")
-            end
-        else
-            print("Player not selected or not found")
-        end
-    else
-        local players = getValidPlayers()
-        if #players > 0 then
-            cycleIndex = 1
-            currentTarget = players[1]
-            toggleBlackHole()
-        else
-            print("No valid players found")
-        end
-    end
+	if targetMode == "Players" then
+		local player = getPlayer(Box.Text)
+		if player then
+			character = player.Character or player.CharacterAdded:Wait(5)
+			if character then
+				humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+				if humanoidRootPart then
+					currentTarget = player
+					toggleBlackHole()
+				else
+					print("Player has no HumanoidRootPart")
+				end
+			else
+				print("Player character not found")
+			end
+		else
+			print("Player not selected or not found")
+		end
+	else
+		local players = getValidPlayers()
+		if #players > 0 then
+			cycleIndex = 1
+			currentTarget = players[1]
+			toggleBlackHole()
+		else
+			print("No valid players found")
+		end
+	end
 end)
 
 Box.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local player = getPlayer(Box.Text)
-        if player then
-            Box.Text = player.Name
-            print("Player found:", player.Name)
-            if not blackHoleActive then
-                currentTarget = player
-                StatusLabel.Text = "Target: " .. player.Name
-            end
-        else
-            print("Player not found")
-        end
-    end
+	if enterPressed then
+		local player = getPlayer(Box.Text)
+		if player then
+			Box.Text = player.Name
+			print("Player found:", player.Name)
+			if not blackHoleActive then
+				currentTarget = player
+				StatusLabel.Text = "Target: " .. player.Name
+			end
+		else
+			print("Player not found")
+		end
+	end
 end)
 
 local guiVisible = true
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if input.KeyCode == Enum.KeyCode.RightControl and not gameProcessedEvent then
-        guiVisible = not guiVisible
-        
-        local targetTransparency = guiVisible and 0.1 or 1
-        local tween = TweenService:Create(Main, TweenInfo.new(0.3), {
-            BackgroundTransparency = targetTransparency
-        })
-        tween:Play()
-        
-        for _, child in ipairs(Main:GetChildren()) do
-            if child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("TextLabel") then
-                local childTween = TweenService:Create(child, TweenInfo.new(0.3), {
-                    BackgroundTransparency = targetTransparency,
-                    TextTransparency = guiVisible and 0 or 1
-                })
-                childTween:Play()
-            end
-        end
-        
-        Main.Active = guiVisible
-        Main.Draggable = guiVisible
-    end
+	if input.KeyCode == Enum.KeyCode.RightControl and not gameProcessedEvent then
+		guiVisible = not guiVisible
+		
+		local targetTransparency = guiVisible and 0.1 or 1
+		local tween = TweenService:Create(Main, TweenInfo.new(0.3), {
+			BackgroundTransparency = targetTransparency
+		})
+		tween:Play()
+		
+		for _, child in ipairs(Main:GetChildren()) do
+			if child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("TextLabel") then
+				local childTween = TweenService:Create(child, TweenInfo.new(0.3), {
+					BackgroundTransparency = targetTransparency,
+					TextTransparency = guiVisible and 0 or 1
+				})
+				childTween:Play()
+			end
+		end
+		
+		Main.Active = guiVisible
+		Main.Draggable = guiVisible
+	end
 end)
 
 fadeBox(true)
 StatusLabel.Text = "Target: None"
 Players.PlayerRemoving:Connect(function(player)
-    if player == currentTarget then
-        if spectateActive then
-            stopSpectating()
-            spectateActive = false
-            SpectateButton.Text = "Spectate: Off"
-        end
-        updateTarget()
-    end
+	if player == currentTarget then
+		if spectateActive then
+			stopSpectating()
+			spectateActive = false
+			SpectateButton.Text = "Spectate: Off"
+		end
+		updateTarget()
+	end
 end)
 
 for _, player in pairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        player.CharacterAdded:Connect(function()
-            if targetMode == "All" and blackHoleActive then
-                updateTarget()
-            end
-        end)
-    end
+	if player ~= LocalPlayer then
+		player.CharacterAdded:Connect(function()
+			if targetMode == "All" and blackHoleActive then
+				updateTarget()
+			end
+		end)
+	end
 end
 
 LocalPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function(child)
-    if child == Gui then
-        if spectateActive then
-            stopSpectating()
-        end
-        if spectateMonitorConnection then
-            spectateMonitorConnection:Disconnect()
-        end
-        if cycleConnection then
-            cycleConnection:Disconnect()
-        end
-        if DescendantAddedConnection then
-            DescendantAddedConnection:Disconnect()
-        end
-        cleanup()
-        Folder:Destroy()
-    end
+	if child == Gui then
+		if spectateActive then
+			stopSpectating()
+		end
+		if spectateMonitorConnection then
+			spectateMonitorConnection:Disconnect()
+		end
+		if cycleConnection then
+			cycleConnection:Disconnect()
+		end
+		if DescendantAddedConnection then
+			DescendantAddedConnection:Disconnect()
+		end
+		Folder:Destroy()
+	end
 end)
