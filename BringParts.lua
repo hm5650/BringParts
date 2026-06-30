@@ -4,11 +4,9 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = workspace.CurrentCamera
-
 local LocalPlayer = Players.LocalPlayer
 local character
 local humanoidRootPart
-
 local Gui = Instance.new("ScreenGui")
 local Main = Instance.new("Frame")
 local UICorner_Main = Instance.new("UICorner")
@@ -30,12 +28,10 @@ local UICorner_Bring = Instance.new("UICorner")
 local UITextSizeConstraint_Bring = Instance.new("UITextSizeConstraint")
 local StatusLabel = Instance.new("TextLabel")
 local UICorner_Status = Instance.new("UICorner")
-
 Gui.Name = "Gui"
 Gui.Parent = gethui() or Players.LocalPlayer:WaitForChild("PlayerGui")
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.ResetOnSpawn = false
-
 Main.Name = "Main"
 Main.Parent = Gui
 Main.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
@@ -45,10 +41,8 @@ Main.Position = UDim2.new(0.3, 0, 0.4, 0)
 Main.Size = UDim2.new(0.3, 0, 0.3, 0)
 Main.Active = true
 Main.Draggable = true
-
 UICorner_Main.CornerRadius = UDim.new(0, 20)
 UICorner_Main.Parent = Main
-
 Label.Name = "Label"
 Label.Parent = Main
 Label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -65,13 +59,11 @@ UICorner_Label.CornerRadius = UDim.new(0, 12)
 UICorner_Label.Parent = Label
 UITextSizeConstraint_Label.Parent = Label
 UITextSizeConstraint_Label.MaxTextSize = 24
-
 Controls.Name = "Controls"
 Controls.Parent = Main
 Controls.BackgroundTransparency = 1
 Controls.Position = UDim2.new(0, 0, 0.18, 0)
 Controls.Size = UDim2.new(1, 0, 0.32, 0)
-
 Box.Name = "Box"
 Box.Parent = Controls
 Box.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
@@ -91,7 +83,6 @@ UICorner_Box.CornerRadius = UDim.new(0, 12)
 UICorner_Box.Parent = Box
 UITextSizeConstraint_Box.Parent = Box
 UITextSizeConstraint_Box.MaxTextSize = 35
-
 TargetButton.Name = "TargetButton"
 TargetButton.Parent = Controls
 TargetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -109,7 +100,6 @@ UICorner_Target.CornerRadius = UDim.new(0, 12)
 UICorner_Target.Parent = TargetButton
 UITextSizeConstraint_Target.Parent = TargetButton
 UITextSizeConstraint_Target.MaxTextSize = 24
-
 SpectateButton.Name = "SpectateButton"
 SpectateButton.Parent = Main
 SpectateButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -127,7 +117,6 @@ UICorner_Spectate.CornerRadius = UDim.new(0, 12)
 UICorner_Spectate.Parent = SpectateButton
 UITextSizeConstraint_Spectate.Parent = SpectateButton
 UITextSizeConstraint_Spectate.MaxTextSize = 24
-
 BringButton.Name = "BringButton"
 BringButton.Parent = Main
 BringButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -145,7 +134,6 @@ UICorner_Bring.CornerRadius = UDim.new(0, 12)
 UICorner_Bring.Parent = BringButton
 UITextSizeConstraint_Bring.Parent = BringButton
 UITextSizeConstraint_Bring.MaxTextSize = 28
-
 StatusLabel.Name = "StatusLabel"
 StatusLabel.Parent = Main
 StatusLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -161,7 +149,6 @@ StatusLabel.TextSize = 20
 StatusLabel.TextWrapped = true
 UICorner_Status.CornerRadius = UDim.new(0, 10)
 UICorner_Status.Parent = StatusLabel
-
 local targetMode = "Players"
 local spectateActive = false
 local blackHoleActive = false
@@ -172,20 +159,18 @@ local spectateMonitorConnection = nil
 local DescendantAddedConnection
 local originalCameraSubject = nil
 local originalCameraType = nil
-
 local Folder = Instance.new("Folder", Workspace)
 local Part = Instance.new("Part", Folder)
 local Attachment1 = Instance.new("Attachment", Part)
 Part.Anchored = true
 Part.CanCollide = false
 Part.Transparency = 1
-
+local controlledParts = {}
 if not getgenv().Network then
 	getgenv().Network = {
 		BaseParts = {},
 		Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
 	}
-
 	Network.RetainPart = function(Part)
 		if Part:IsA("BasePart") and Part:IsDescendantOf(Workspace) then
 			table.insert(Network.BaseParts, Part)
@@ -193,7 +178,6 @@ if not getgenv().Network then
 			Part.CanCollide = false
 		end
 	end
-
 	local function EnablePartControl()
 		LocalPlayer.ReplicationFocus = Workspace
 		RunService.Heartbeat:Connect(function()
@@ -205,13 +189,12 @@ if not getgenv().Network then
 			end
 		end)
 	end
-
 	EnablePartControl()
 end
 local function ForcePart(v)
-	if v:IsA("BasePart") and not v.Anchored 
-		and not v.Parent:FindFirstChildOfClass("Humanoid") 
-		and not v.Parent:FindFirstChild("Head") 
+	if v:IsA("BasePart") and not v.Anchored
+		and not v.Parent:FindFirstChildOfClass("Humanoid")
+		and not v.Parent:FindFirstChild("Head")
 		and v.Name ~= "Handle" then
 		for _, x in ipairs(v:GetChildren()) do
 			if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
@@ -232,9 +215,37 @@ local function ForcePart(v)
 		AlignPosition.Responsiveness = 200
 		AlignPosition.Attachment0 = Attachment2
 		AlignPosition.Attachment1 = Attachment1
+		controlledParts[v] = true
 	end
 end
-
+local function releaseParts()
+	for part in pairs(controlledParts) do
+		if part and part.Parent then
+			local align = part:FindFirstChild("AlignPosition")
+			if align then align:Destroy() end
+			local torque = part:FindFirstChild("Torque")
+			if torque then torque:Destroy() end
+			local att = part:FindFirstChild("Attachment")
+			if att then att:Destroy() end
+			part.CanCollide = true
+			part.CustomPhysicalProperties = nil
+		end
+	end
+	controlledParts = {}
+end
+local function clear()
+	spawn(function()
+		while not blackHoleActive do
+			task.wait(0.5)
+			for part in pairs(controlledParts) do
+				if part and part.Parent and part.Position.Y < 200 then
+					part:Destroy()
+					controlledParts[part] = nil
+				end
+			end
+		end
+	end)
+end
 local function getPlayer(name)
 	local lowerName = string.lower(name)
 	for _, p in pairs(Players:GetPlayers()) do
@@ -248,8 +259,7 @@ local function getPlayer(name)
 		end
 	end
 end
-
-local function getValidPlayers()
+local function validplr()
 	local valid = {}
 	for _, p in pairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -258,17 +268,15 @@ local function getValidPlayers()
 	end
 	return valid
 end
-
 local function isTargetValid(target)
-	return target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") and 
+	return target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") and
 		   target.Character.Humanoid.Health > 0
 end
-
 local function updateTarget()
 	if targetMode == "Players" then
 		currentTarget = getPlayer(Box.Text)
 	else
-		local players = getValidPlayers()
+		local players = validplr()
 		if #players > 0 then
 			cycleIndex = (cycleIndex % #players) + 1
 			currentTarget = players[cycleIndex]
@@ -276,34 +284,29 @@ local function updateTarget()
 			currentTarget = nil
 		end
 	end
-	
 	if currentTarget then
 		StatusLabel.Text = "Target: " .. currentTarget.Name
 	else
 		StatusLabel.Text = "Target: None"
 	end
-	
 	if spectateActive then
 		if isTargetValid(currentTarget) then
-			startSpectating()
+			view()
 		else
-			stopSpectating()
+			noview()
 			spectateActive = false
 			SpectateButton.Text = "Spectate: Off"
 		end
 	end
-	
 	return currentTarget
 end
-
-local function getTargetCFrame()
+local function cframe()
 	if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
 		return currentTarget.Character.HumanoidRootPart.CFrame
 	end
 	return nil
 end
-
-local function startCycling()
+local function allthing()
 	if cycleConnection then cycleConnection:Disconnect() end
 	cycleConnection = RunService.Heartbeat:Connect(function()
 		if targetMode == "All" and blackHoleActive then
@@ -313,31 +316,26 @@ local function startCycling()
 		end
 	end)
 end
-
-local function startSpectating()
+local function view()
 	if not currentTarget or not isTargetValid(currentTarget) then
 		if spectateActive then
 			spectateActive = false
 			SpectateButton.Text = "Spectate: Off"
-			stopSpectating()
+			noview()
 		end
 		return
 	end
-	
 	local character = currentTarget.Character
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
-	
 	if not originalCameraType then
 		originalCameraType = Camera.CameraType
 		originalCameraSubject = Camera.CameraSubject
 	end
-	
 	Camera.CameraType = Enum.CameraType.Custom
 	Camera.CameraSubject = humanoid
 end
-
-local function stopSpectating()
+local function noview()
 	if originalCameraType and originalCameraSubject then
 		Camera.CameraType = originalCameraType
 		Camera.CameraSubject = originalCameraSubject
@@ -352,7 +350,6 @@ local function startSpectateMonitoring()
 	if spectateMonitorConnection then
 		spectateMonitorConnection:Disconnect()
 	end
-	
 	spectateMonitorConnection = RunService.Heartbeat:Connect(function()
 		if not spectateActive then
 			if spectateMonitorConnection then
@@ -361,25 +358,24 @@ local function startSpectateMonitoring()
 			end
 			return
 		end
-		
 		if not isTargetValid(currentTarget) then
 			if targetMode == "All" then
 				local newTarget = updateTarget()
 				if newTarget and isTargetValid(newTarget) then
-					startSpectating()
+					view()
 				else
-					stopSpectating()
+					noview()
 					spectateActive = false
 					SpectateButton.Text = "Spectate: Off"
 				end
 			else
-				stopSpectating()
+				noview()
 				if currentTarget then
 					currentTarget.CharacterAdded:Connect(function()
 						if spectateActive and currentTarget == currentTarget then
 							task.wait(0.5)
 							if spectateActive and isTargetValid(currentTarget) then
-								startSpectating()
+								view()
 							end
 						end
 					end)
@@ -390,24 +386,21 @@ local function startSpectateMonitoring()
 			end
 		else
 			if Camera.CameraSubject ~= currentTarget.Character:FindFirstChildOfClass("Humanoid") then
-				startSpectating()
+				view()
 			end
 		end
 	end)
 end
-
-local function toggleSpectate()
+local function togview()
 	if not currentTarget then
 		print("No target to spectate")
 		return
 	end
-	
 	spectateActive = not spectateActive
 	SpectateButton.Text = spectateActive and "Spectate: On" or "Spectate: Off"
-	
 	if spectateActive then
 		if isTargetValid(currentTarget) then
-			startSpectating()
+			view()
 			startSpectateMonitoring()
 		else
 			print("Target is not valid (dead or no character)")
@@ -415,20 +408,18 @@ local function toggleSpectate()
 			SpectateButton.Text = "Spectate: Off"
 		end
 	else
-		stopSpectating()
+		noview()
 		if spectateMonitorConnection then
 			spectateMonitorConnection:Disconnect()
 			spectateMonitorConnection = nil
 		end
 	end
 end
-
 local function toggleBlackHole()
 	blackHoleActive = not blackHoleActive
 	if blackHoleActive then
 		BringButton.Text = "Bring: On"
 		updateTarget()
-		
 		if not currentTarget then
 			blackHoleActive = false
 			BringButton.Text = "Bring: Off"
@@ -444,11 +435,11 @@ local function toggleBlackHole()
 			end
 		end)
 		if targetMode == "All" then
-			startCycling()
+			allthing()
 		end
 		spawn(function()
 			while blackHoleActive and RunService.RenderStepped:Wait() do
-				local cframe = getTargetCFrame()
+				local cframe = cframe()
 				if cframe then
 					Attachment1.WorldCFrame = cframe
 				end
@@ -456,19 +447,21 @@ local function toggleBlackHole()
 		end)
 	else
 		BringButton.Text = "Bring: Off"
+		releaseParts()
+		clear()
 		if DescendantAddedConnection then
 			DescendantAddedConnection:Disconnect()
+			DescendantAddedConnection = nil
 		end
 		if cycleConnection then
 			cycleConnection:Disconnect()
 			cycleConnection = nil
 		end
 		if spectateActive then
-			toggleSpectate()
+			togview()
 		end
 	end
 end
-
 local function fadeBox(show)
 	local targetTransparency = show and 0.1 or 1
 	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -481,12 +474,10 @@ local function fadeBox(show)
 	Box.Active = show
 	Box.Selectable = show
 end
-
-local function toggleTargetMode()
+local function targetmode()
 	local newMode = targetMode == "Players" and "All" or "Players"
 	targetMode = newMode
 	TargetButton.Text = targetMode
-	
 	if targetMode == "Players" then
 		TargetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 	else
@@ -498,14 +489,13 @@ local function toggleTargetMode()
 			updateTarget()
 			startSpectateMonitoring()
 		else
-
 			startSpectateMonitoring()
 		end
 	end
 	if blackHoleActive then
 		updateTarget()
 		if targetMode == "All" then
-			startCycling()
+			allthing()
 		else
 			if cycleConnection then
 				cycleConnection:Disconnect()
@@ -514,9 +504,8 @@ local function toggleTargetMode()
 		end
 	end
 end
-
-TargetButton.MouseButton1Click:Connect(toggleTargetMode)
-SpectateButton.MouseButton1Click:Connect(toggleSpectate)
+TargetButton.MouseButton1Click:Connect(targetmode)
+SpectateButton.MouseButton1Click:Connect(togview)
 BringButton.MouseButton1Click:Connect(function()
 	if targetMode == "Players" then
 		local player = getPlayer(Box.Text)
@@ -537,7 +526,7 @@ BringButton.MouseButton1Click:Connect(function()
 			print("Player not selected or not found")
 		end
 	else
-		local players = getValidPlayers()
+		local players = validplr()
 		if #players > 0 then
 			cycleIndex = 1
 			currentTarget = players[1]
@@ -547,7 +536,6 @@ BringButton.MouseButton1Click:Connect(function()
 		end
 	end
 end)
-
 Box.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
 		local player = getPlayer(Box.Text)
@@ -563,18 +551,15 @@ Box.FocusLost:Connect(function(enterPressed)
 		end
 	end
 end)
-
 local guiVisible = true
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 	if input.KeyCode == Enum.KeyCode.RightControl and not gameProcessedEvent then
 		guiVisible = not guiVisible
-		
 		local targetTransparency = guiVisible and 0.1 or 1
 		local tween = TweenService:Create(Main, TweenInfo.new(0.3), {
 			BackgroundTransparency = targetTransparency
 		})
 		tween:Play()
-		
 		for _, child in ipairs(Main:GetChildren()) do
 			if child:IsA("TextButton") or child:IsA("TextBox") or child:IsA("TextLabel") then
 				local childTween = TweenService:Create(child, TweenInfo.new(0.3), {
@@ -584,25 +569,22 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 				childTween:Play()
 			end
 		end
-		
 		Main.Active = guiVisible
 		Main.Draggable = guiVisible
 	end
 end)
-
 fadeBox(true)
 StatusLabel.Text = "Target: None"
 Players.PlayerRemoving:Connect(function(player)
 	if player == currentTarget then
 		if spectateActive then
-			stopSpectating()
+			noview()
 			spectateActive = false
 			SpectateButton.Text = "Spectate: Off"
 		end
 		updateTarget()
 	end
 end)
-
 for _, player in pairs(Players:GetPlayers()) do
 	if player ~= LocalPlayer then
 		player.CharacterAdded:Connect(function()
@@ -612,11 +594,10 @@ for _, player in pairs(Players:GetPlayers()) do
 		end)
 	end
 end
-
 LocalPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function(child)
 	if child == Gui then
 		if spectateActive then
-			stopSpectating()
+			noview()
 		end
 		if spectateMonitorConnection then
 			spectateMonitorConnection:Disconnect()
